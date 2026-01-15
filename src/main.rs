@@ -30,9 +30,15 @@ use std::{
 use tokio::{io::AsyncReadExt, sync::RwLock};
 
 async fn shutdown_signal() {
-    tokio::signal::ctrl_c()
-        .await
-        .expect("Failed to install CTRL+C signal handler");
+    let mut sigterm =  tokio::signal::unix::signal(
+        tokio::signal::unix::SignalKind::terminate())
+        .expect("Failed to install SIGTERM signal handler");
+
+    // Shutdown on either SIGINT or SIGTERM.
+    tokio::select! {
+    _ = tokio::signal::ctrl_c() => {},
+    _ = sigterm.recv() => {},
+    }
 }
 
 #[derive(Clone, Debug, Serialize)]
